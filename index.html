@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Pac-Man Custom - Fixed</title>
+    <title>Pac-Man Custom - Audio Fixed</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -74,6 +74,7 @@
         let currentLevel = 0;
         let isPaused = false;
         let isMusicPlaying = false;
+        let isEatingLoopPlaying = false; // Stato per tracciare il loop del suono eat
 
         // ============================================================================
         // GESTORE AUDIO
@@ -88,6 +89,10 @@
             init: function() {
                 this.bgMusic.loop = true;
                 this.bgMusic.volume = 0.4;
+                
+                // Impostiamo il suono eat in LOOP come richiesto
+                this.soundEat.loop = true;
+                this.soundEat.volume = 0.5;
             },
 
             playMusic: function() {
@@ -104,6 +109,22 @@
                 isMusicPlaying = false;
             },
 
+            // Funzione per avviare l'effetto eat in loop continuo senza ritardi
+            startEatLoop: function() {
+                if (!isEatingLoopPlaying && !isPaused) {
+                    this.soundEat.currentTime = 0; // Forza l'inizio immediato
+                    this.soundEat.play()
+                        .then(() => { isEatingLoopPlaying = true; })
+                        .catch(e => console.log("Errore riproduzione Eat Loop:", e));
+                }
+            },
+
+            // Funzione per fermare l'effetto eat
+            stopEatLoop: function() {
+                this.soundEat.pause();
+                isEatingLoopPlaying = false;
+            },
+
             playSFX: function(audioClip) {
                 audioClip.currentTime = 0;
                 audioClip.play().catch(e => console.log("Errore SFX:", e));
@@ -112,7 +133,7 @@
 
         AudioManager.init();
 
-        // --- DATABASE MAPPE (Vero stile Pac-Man Labirinto) ---
+        // --- DATABASE MAPPE ---
         const MAPS = [
             [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -155,12 +176,12 @@
             document.getElementById('lvl').innerText = currentLevel + 1;
             document.getElementById('ui-death').style.display = 'none';
             isPaused = false;
+            AudioManager.stopEatLoop(); // Reset del suono dei pallini a inizio livello
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Disegna Mappa
             for(let y=0; y<grid.length; y++){
                 for(let x=0; x<grid[y].length; x++){
                     if(grid[y][x] === 1) {
@@ -175,7 +196,6 @@
                 }
             }
 
-            // Disegna Pacman
             pacman.mouth += 0.25;
             let open = Math.abs(Math.sin(pacman.mouth)) * 0.2;
 
@@ -189,7 +209,6 @@
             ctx.fill();
             ctx.restore();
 
-            // Disegna Fantasmi
             ghosts.forEach(g => {
                 ctx.fillStyle = g.color;
                 ctx.beginPath();
@@ -203,7 +222,6 @@
         function update() {
             if(isPaused) return;
 
-            // Logica di svolta fluida (gira appena c'è spazio disponibile)
             if (grid[pacman.y + pacman.nextDy]?.[pacman.x + pacman.nextDx] !== 1) {
                 pacman.dx = pacman.nextDx;
                 pacman.dy = pacman.nextDy;
@@ -214,25 +232,31 @@
                 if(pacman.dy === -1) pacman.angle = -Math.PI/2;
             }
 
+            let isMoving = false;
             if (grid[pacman.y + pacman.dy]?.[pacman.x + pacman.dx] !== 1) {
                 pacman.x += pacman.dx;
                 pacman.y += pacman.dy;
+                if (pacman.dx !== 0 || pacman.dy !== 0) isMoving = true;
             }
 
-            // Mangia puntini
+            // Gestione dei pallini
             if(grid[pacman.y]?.[pacman.x] === 0) {
                 grid[pacman.y][pacman.x] = 2;
                 score += 10;
                 document.getElementById('score').innerText = score;
                 
-                // 🔊 Eat quando mangia i pallini
-                AudioManager.playSFX(AudioManager.soundEat);
+                // 🔊 Attiva il loop dell'eat finché sta effettivamente mangiando
+                AudioManager.startEatLoop();
+            } else {
+                // Se si muove su zone vuote (senza pallini), fermiamo temporaneamente il loop eat
+                AudioManager.stopEatLoop();
             }
 
             // Controllo Vittoria
             let dots = 0;
             grid.forEach(row => row.forEach(c => { if(c === 0) dots++; }));
             if(dots === 0) {
+                AudioManager.stopEatLoop(); // Ferma l'audio alla vittoria
                 currentLevel++;
                 initLevel();
             }
@@ -249,7 +273,6 @@
                     let valid = dirs.filter(d => grid[g.y + d.y]?.[g.x + d.x] !== 1);
                     
                     if(valid.length > 0) {
-                        // Inseguimento Pac-Man intellegente
                         valid.sort((a,b) => {
                             return Math.hypot(g.x+a.x - pacman.x, g.y+a.y - pacman.y) - 
                                    Math.hypot(g.x+b.x - pacman.x, g.y+b.y - pacman.y);
@@ -264,17 +287,17 @@
                     g.y += g.dy;
                 }
 
-                // Collisione (Sconfitta)
+                // Collisione (Morte)
                 if(g.x === pacman.x && g.y === pacman.y) {
                     isPaused = true;
                     
-                    // 🔊 Ferma la musica principale e avvia "game die"
+                    // 🔊 Ferma sia la musica che il loop del suono "eat"
                     AudioManager.stopMusic();
+                    AudioManager.stopEatLoop();
+                    
                     AudioManager.playSFX(AudioManager.soundDie);
 
                     document.getElementById('ui-death').style.display = 'flex';
-                    
-                    // 🔊 In contemporanea alla scritta "Catturato" parte il suono del tasto retry
                     AudioManager.playSFX(AudioManager.soundRetry);
                 }
             });
@@ -286,7 +309,6 @@
         }
 
         window.addEventListener('keydown', e => {
-            // Fa partire la musica di sottofondo normale di gioco al primo movimento
             AudioManager.playMusic();
 
             if(e.key === 'ArrowUp')    { pacman.nextDx = 0; pacman.nextDy = -1; AudioManager.playSFX(AudioManager.soundBip); }
