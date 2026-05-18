@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Pac-Man Custom - GitHub</title>
+    <title>Pac-Man Custom - Fixed</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -25,8 +25,8 @@
             color: #ffff00;
         }
         canvas {
-            border: 4px solid #333;
-            box-shadow: 0 0 20px #222;
+            border: 4px solid #33f;
+            box-shadow: 0 0 20px #00f;
         }
         #ui-death {
             position: absolute;
@@ -73,7 +73,7 @@
         let score = 0;
         let currentLevel = 0;
         let isPaused = false;
-        let isMusicPlaying = false; // Controlla se la musica è già stata avviata
+        let isMusicPlaying = false;
 
         // ============================================================================
         // GESTORE AUDIO
@@ -110,33 +110,20 @@
             }
         };
 
-        // Inizializza l'audio
         AudioManager.init();
 
-        // --- DATABASE DELLE MAPPE ---
+        // --- DATABASE MAPPE (Vero stile Pac-Man Labirinto) ---
         const MAPS = [
-            // Livello 1: Semplice e aperto
             [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1],
+                [1,0,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1],
+                [1,0,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1],
                 [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,0,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,0,1],
-                [1,0,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,1],
-                [1,0,1,0,1,1,1,1,0,1,1,0,1,1,1,1,0,1,0,1],
-                [1,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,1],
-                [1,0,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,0,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-            ],
-            // Livello 2: Più corridoi
-            [
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
-                [1,0,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,0,1],
-                [1,0,0,0,1,0,0,0,0,2,2,0,0,0,0,1,0,0,0,1],
-                [1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,0,1,1,1,0,1,1,1,0,0,1,1,1,0,1,1,1,0,1],
-                [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
+                [1,0,1,1,0,1,0,1,1,2,2,1,1,0,1,0,1,1,0,1],
+                [1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+                [1,1,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1],
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
             ]
         ];
@@ -156,13 +143,11 @@
                 mouth: 0
             };
 
-            // Fantasmi iniziali (più lenti all'inizio)
             ghosts = [
                 { x: 9, y: 5, dx: 1, dy: 0, color: 'red', speedCounter: 0 },
                 { x: 10, y: 5, dx: -1, dy: 0, color: 'pink', speedCounter: 0 }
             ];
 
-            // Aggiungi un fantasma extra dal livello 2
             if(currentLevel >= 1) {
                 ghosts.push({ x: 9, y: 3, dx: 0, dy: 1, color: 'cyan', speedCounter: 0 });
             }
@@ -179,20 +164,18 @@
             for(let y=0; y<grid.length; y++){
                 for(let x=0; x<grid[y].length; x++){
                     if(grid[y][x] === 1) {
-                        ctx.fillStyle = '#1a1a1a';
+                        ctx.fillStyle = '#0000d8';
                         ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
-                        ctx.strokeStyle = '#33f';
-                        ctx.strokeRect(x*TILE+2, y*TILE+2, TILE-4, TILE-4);
                     } else if(grid[y][x] === 0) {
                         ctx.fillStyle = '#ffb8ae';
                         ctx.beginPath();
-                        ctx.arc(x*TILE + 10, y*TILE + 10, 2, 0, Math.PI*2);
+                        ctx.arc(x*TILE + 10, y*TILE + 10, 3, 0, Math.PI*2);
                         ctx.fill();
                     }
                 }
             }
 
-            // Disegna Pacman con Rotazione Bocca
+            // Disegna Pacman
             pacman.mouth += 0.25;
             let open = Math.abs(Math.sin(pacman.mouth)) * 0.2;
 
@@ -220,25 +203,24 @@
         function update() {
             if(isPaused) return;
 
-            // Movimento Pacman
-            if (grid[pacman.y + pacman.nextDy][pacman.x + pacman.nextDx] !== 1) {
+            // Logica di svolta fluida (gira appena c'è spazio disponibile)
+            if (grid[pacman.y + pacman.nextDy]?.[pacman.x + pacman.nextDx] !== 1) {
                 pacman.dx = pacman.nextDx;
                 pacman.dy = pacman.nextDy;
                 
-                // Rotazione in base alla direzione
                 if(pacman.dx === 1) pacman.angle = 0;
                 if(pacman.dx === -1) pacman.angle = Math.PI;
                 if(pacman.dy === 1) pacman.angle = Math.PI/2;
                 if(pacman.dy === -1) pacman.angle = -Math.PI/2;
             }
 
-            if (grid[pacman.y + pacman.dy][pacman.x + pacman.dx] !== 1) {
+            if (grid[pacman.y + pacman.dy]?.[pacman.x + pacman.dx] !== 1) {
                 pacman.x += pacman.dx;
                 pacman.y += pacman.dy;
             }
 
             // Mangia puntini
-            if(grid[pacman.y][pacman.x] === 0) {
+            if(grid[pacman.y]?.[pacman.x] === 0) {
                 grid[pacman.y][pacman.x] = 2;
                 score += 10;
                 document.getElementById('score').innerText = score;
@@ -247,7 +229,7 @@
                 AudioManager.playSFX(AudioManager.soundEat);
             }
 
-            // Vittoria Livello
+            // Controllo Vittoria
             let dots = 0;
             grid.forEach(row => row.forEach(c => { if(c === 0) dots++; }));
             if(dots === 0) {
@@ -255,7 +237,7 @@
                 initLevel();
             }
 
-            // Movimento Fantasmi (Rallentati)
+            // Movimento Fantasmi
             ghosts.forEach(g => {
                 g.speedCounter++;
                 let speedDelay = Math.max(2, 4 - currentLevel); 
@@ -264,20 +246,17 @@
                     g.speedCounter = 0;
                     
                     let dirs = [{x:1, y:0}, {x:-1, y:0}, {x:0, y:1}, {x:0, y:-1}];
-                    if(grid[g.y + g.dy][g.x + g.dx] === 1 || Math.random() < 0.3) {
-                        let valid = dirs.filter(d => grid[g.y + d.y][g.x + d.x] !== 1);
+                    let valid = dirs.filter(d => grid[g.y + d.y]?.[g.x + d.x] !== 1);
+                    
+                    if(valid.length > 0) {
+                        // Inseguimento Pac-Man intellegente
+                        valid.sort((a,b) => {
+                            return Math.hypot(g.x+a.x - pacman.x, g.y+a.y - pacman.y) - 
+                                   Math.hypot(g.x+b.x - pacman.x, g.y+b.y - pacman.y);
+                        });
                         
-                        let chanceToChase = currentLevel < 2 ? 0.2 : 0.7;
-
-                        if(Math.random() < chanceToChase) {
-                            valid.sort((a,b) => {
-                                return Math.hypot(g.x+a.x - pacman.x, g.y+a.y - pacman.y) - 
-                                       Math.hypot(g.x+b.x - pacman.x, g.y+b.y - pacman.y);
-                            });
-                        }
-                        
-                        let move = valid[0]; 
-                        if(Math.random() > 0.8) move = valid[Math.floor(Math.random()*valid.length)];
+                        let move = valid[0];
+                        if(Math.random() > 0.7) move = valid[Math.floor(Math.random() * valid.length)];
 
                         if(move) { g.dx = move.x; g.dy = move.y; }
                     }
@@ -285,18 +264,17 @@
                     g.y += g.dy;
                 }
 
-                // Collisione (Morte)
+                // Collisione (Sconfitta)
                 if(g.x === pacman.x && g.y === pacman.y) {
                     isPaused = true;
                     
-                    // 🔊 Ferma la musica principale e riproduce "game die" quando muore
+                    // 🔊 Ferma la musica principale e avvia "game die"
                     AudioManager.stopMusic();
                     AudioManager.playSFX(AudioManager.soundDie);
 
-                    // Mostra l'interfaccia "CATTURATO"
                     document.getElementById('ui-death').style.display = 'flex';
                     
-                    // 🔊 Retry botton quando esce la scritta "catturato"
+                    // 🔊 In contemporanea alla scritta "Catturato" parte il suono del tasto retry
                     AudioManager.playSFX(AudioManager.soundRetry);
                 }
             });
@@ -304,12 +282,11 @@
 
         function retryLevel() {
             initLevel();
-            // Fa ripartire la musica quando si riprova il livello
             AudioManager.playMusic();
         }
 
         window.addEventListener('keydown', e => {
-            // Sblocca e avvia la musica di sottofondo alla prima pressione di un tasto di movimento
+            // Fa partire la musica di sottofondo normale di gioco al primo movimento
             AudioManager.playMusic();
 
             if(e.key === 'ArrowUp')    { pacman.nextDx = 0; pacman.nextDy = -1; AudioManager.playSFX(AudioManager.soundBip); }
@@ -323,7 +300,7 @@
             draw();
             setTimeout(() => {
                 requestAnimationFrame(gameLoop);
-            }, 120);
+            }, 150);
         }
 
         initLevel();
