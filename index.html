@@ -74,7 +74,7 @@
         let currentLevel = 0;
         let isPaused = false;
         let isMusicPlaying = false;
-        let isEatingLoopPlaying = false; // Stato per tracciare il loop del suono eat
+        let isEatingLoopPlaying = false;
 
         // ============================================================================
         // GESTORE AUDIO
@@ -89,8 +89,6 @@
             init: function() {
                 this.bgMusic.loop = true;
                 this.bgMusic.volume = 0.4;
-                
-                // Impostiamo il suono eat in LOOP come richiesto
                 this.soundEat.loop = true;
                 this.soundEat.volume = 0.5;
             },
@@ -109,17 +107,15 @@
                 isMusicPlaying = false;
             },
 
-            // Funzione per avviare l'effetto eat in loop continuo senza ritardi
             startEatLoop: function() {
                 if (!isEatingLoopPlaying && !isPaused) {
-                    this.soundEat.currentTime = 0; // Forza l'inizio immediato
+                    this.soundEat.currentTime = 0;
                     this.soundEat.play()
                         .then(() => { isEatingLoopPlaying = true; })
                         .catch(e => console.log("Errore riproduzione Eat Loop:", e));
                 }
             },
 
-            // Funzione per fermare l'effetto eat
             stopEatLoop: function() {
                 this.soundEat.pause();
                 isEatingLoopPlaying = false;
@@ -152,6 +148,14 @@
         let grid = [];
         let pacman, ghosts;
 
+        // Funzione di utilità per verificare se una coordinata è un muro valido o fuori mappa
+        function isWall(x, y) {
+            if (y < 0 || y >= grid.length || x < 0 || x >= grid[y].length) {
+                return true; // Considera fuori mappa come un muro per evitare crash
+            }
+            return grid[y][x] === 1;
+        }
+
         function initLevel() {
             const mapIdx = currentLevel % MAPS.length;
             grid = MAPS[mapIdx].map(row => [...row]);
@@ -176,7 +180,7 @@
             document.getElementById('lvl').innerText = currentLevel + 1;
             document.getElementById('ui-death').style.display = 'none';
             isPaused = false;
-            AudioManager.stopEatLoop(); // Reset del suono dei pallini a inizio livello
+            AudioManager.stopEatLoop();
         }
 
         function draw() {
@@ -222,7 +226,8 @@
         function update() {
             if(isPaused) return;
 
-            if (grid[pacman.y + pacman.nextDy]?.[pacman.x + pacman.nextDx] !== 1) {
+            // Controllo della prossima mossa tramite la nuova funzione sicura isWall
+            if (!isWall(pacman.x + pacman.nextDx, pacman.y + pacman.nextDy)) {
                 pacman.dx = pacman.nextDx;
                 pacman.dy = pacman.nextDy;
                 
@@ -232,23 +237,18 @@
                 if(pacman.dy === -1) pacman.angle = -Math.PI/2;
             }
 
-            let isMoving = false;
-            if (grid[pacman.y + pacman.dy]?.[pacman.x + pacman.dx] !== 1) {
+            if (!isWall(pacman.x + pacman.dx, pacman.y + pacman.dy)) {
                 pacman.x += pacman.dx;
                 pacman.y += pacman.dy;
-                if (pacman.dx !== 0 || pacman.dy !== 0) isMoving = true;
             }
 
-            // Gestione dei pallini
-            if(grid[pacman.y]?.[pacman.x] === 0) {
+            // Mangia puntini sicuro
+            if(grid[pacman.y] && grid[pacman.y][pacman.x] === 0) {
                 grid[pacman.y][pacman.x] = 2;
                 score += 10;
                 document.getElementById('score').innerText = score;
-                
-                // 🔊 Attiva il loop dell'eat finché sta effettivamente mangiando
                 AudioManager.startEatLoop();
             } else {
-                // Se si muove su zone vuote (senza pallini), fermiamo temporaneamente il loop eat
                 AudioManager.stopEatLoop();
             }
 
@@ -256,12 +256,12 @@
             let dots = 0;
             grid.forEach(row => row.forEach(c => { if(c === 0) dots++; }));
             if(dots === 0) {
-                AudioManager.stopEatLoop(); // Ferma l'audio alla vittoria
+                AudioManager.stopEatLoop();
                 currentLevel++;
                 initLevel();
             }
 
-            // Movimento Fantasmi
+            // Movimento Fantasmi sicuro
             ghosts.forEach(g => {
                 g.speedCounter++;
                 let speedDelay = Math.max(2, 4 - currentLevel); 
@@ -270,7 +270,7 @@
                     g.speedCounter = 0;
                     
                     let dirs = [{x:1, y:0}, {x:-1, y:0}, {x:0, y:1}, {x:0, y:-1}];
-                    let valid = dirs.filter(d => grid[g.y + d.y]?.[g.x + d.x] !== 1);
+                    let valid = dirs.filter(d => !isWall(g.x + d.x, g.y + d.y));
                     
                     if(valid.length > 0) {
                         valid.sort((a,b) => {
@@ -287,16 +287,12 @@
                     g.y += g.dy;
                 }
 
-                // Collisione (Morte)
+                // Collisione
                 if(g.x === pacman.x && g.y === pacman.y) {
                     isPaused = true;
-                    
-                    // 🔊 Ferma sia la musica che il loop del suono "eat"
                     AudioManager.stopMusic();
                     AudioManager.stopEatLoop();
-                    
                     AudioManager.playSFX(AudioManager.soundDie);
-
                     document.getElementById('ui-death').style.display = 'flex';
                     AudioManager.playSFX(AudioManager.soundRetry);
                 }
